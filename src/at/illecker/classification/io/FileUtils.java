@@ -153,10 +153,12 @@ public class FileUtils {
           StringBuilder sbHeader = new StringBuilder("id");
           for (Map.Entry<Integer, Double> prob : item
               .getPredictedClassProbabilities().entrySet()) {
-            sbHeader
-                .append(sep + dataset.getActualClassRegex() + prob.getKey());
+            int classLabel = prob.getKey()
+                + (dataset.getActualClassOffset() * -1);
+            sbHeader.append(sep + dataset.getActualClassRegex() + classLabel);
           }
           bw.write(sbHeader.toString());
+          bw.newLine();
         }
         // print item
         StringBuilder sb = new StringBuilder();
@@ -166,6 +168,8 @@ public class FileUtils {
           sb.append(sep + prob.getValue());
         }
         bw.write(sb.toString());
+        bw.newLine();
+        i++;
       }
 
     } catch (IOException e) {
