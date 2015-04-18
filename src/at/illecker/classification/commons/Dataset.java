@@ -164,6 +164,10 @@ public class Dataset implements Serializable {
     return m_testItems;
   }
 
+  public void setTestItems(List<Item> testItems) {
+    m_testItems = testItems;
+  }
+
   public void printDatasetStats() {
     LOG.info("Dataset: " + getDatasetPath());
 

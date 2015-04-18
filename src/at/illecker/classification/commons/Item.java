@@ -23,6 +23,7 @@ public class Item extends FeatureVector {
   private Long m_id;
   private Integer m_actualClass = null;
   private Integer m_predictedClass = null;
+  private Map<Integer, Double> m_predictedClassProbabilities = null;
 
   public Item(Long id, Map<Integer, Double> featureVector, Integer actualClass) {
     super(featureVector);
@@ -44,6 +45,15 @@ public class Item extends FeatureVector {
 
   public void setPredictedClass(Integer predictedClass) {
     this.m_predictedClass = predictedClass;
+  }
+
+  public Map<Integer, Double> getPredictedClassProbabilities() {
+    return m_predictedClassProbabilities;
+  }
+
+  public void setPredictedClassProbabilities(
+      Map<Integer, Double> predictedClassProbabilities) {
+    this.m_predictedClassProbabilities = predictedClassProbabilities;
   }
 
   @Override

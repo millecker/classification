@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -43,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import at.illecker.classification.commons.Configuration;
 import at.illecker.classification.commons.Dataset;
 import at.illecker.classification.commons.Item;
+import at.illecker.classification.commons.Pair;
 import at.illecker.classification.io.SerializationUtils;
 
 public class SVM {
@@ -293,43 +295,45 @@ public class SVM {
     executorService.shutdown();
   }
 
-  public static double evaluate(Map<Integer, Double> featureVector,
-      svm_model svmModel, int totalClasses) {
-    return evaluate(featureVector, svmModel, totalClasses, false);
-  }
-
-  public static double evaluate(Map<Integer, Double> featureVector,
-      svm_model svmModel, int totalClasses, boolean logging) {
-
-    // set feature nodes
-    svm_node[] testNodes = new svm_node[featureVector.size()];
+  public static svm_node[] getFeatureNodes(Map<Integer, Double> featureVector) {
+    svm_node[] nodes = new svm_node[featureVector.size()];
     int i = 0;
     for (Map.Entry<Integer, Double> feature : featureVector.entrySet()) {
       svm_node node = new svm_node();
       node.index = feature.getKey();
       node.value = feature.getValue();
-      testNodes[i] = node;
+      nodes[i] = node;
       i++;
     }
+    return nodes;
+  }
 
-    double predictedClass = svm.svm_predict(svmModel, testNodes);
+  public static double evaluate(Map<Integer, Double> featureVector,
+      svm_model svmModel) {
 
-    if (logging) {
-      int[] labels = new int[totalClasses];
-      svm.svm_get_labels(svmModel, labels);
+    svm_node[] nodes = getFeatureNodes(featureVector);
+    return svm.svm_predict(svmModel, nodes);
+  }
 
-      double[] probEstimates = new double[totalClasses];
-      double predictedClassProb = svm.svm_predict_probability(svmModel,
-          testNodes, probEstimates);
+  public static Pair<Double, Map<Integer, Double>> evaluate(
+      Map<Integer, Double> featureVector, svm_model svmModel, int totalClasses) {
 
-      for (i = 0; i < totalClasses; i++) {
-        LOG.info("Label[" + i + "]: " + labels[i] + " Probability: "
-            + probEstimates[i]);
-      }
-      LOG.info("PredictedClass: " + predictedClassProb);
+    int[] labels = new int[totalClasses];
+    svm.svm_get_labels(svmModel, labels);
+
+    svm_node[] nodes = getFeatureNodes(featureVector);
+
+    double[] probEstimates = new double[totalClasses];
+    double predictedClassProb = svm.svm_predict_probability(svmModel, nodes,
+        probEstimates);
+
+    Map<Integer, Double> predictedClassProbabilites = new TreeMap<Integer, Double>();
+    for (int i = 0; i < totalClasses; i++) {
+      predictedClassProbabilites.put(labels[i], probEstimates[i]);
     }
 
-    return predictedClass;
+    return new Pair<Double, Map<Integer, Double>>(predictedClassProb,
+        predictedClassProbabilites);
   }
 
   public static int[][] getConfusionMatrix(double[] actualClass,
@@ -501,7 +505,7 @@ public class SVM {
               + File.separator + SVM_MODEL_FILE_SER);
         }
 
-        // Run n-fold cross validation
+        // run n-fold cross validation
         if (nFoldCrossValidation > 1) {
           LOG.info("Run n-fold cross validation...");
           startTime = System.currentTimeMillis();
@@ -513,17 +517,22 @@ public class SVM {
         }
       }
 
-      // Evaluate test tweets
+      // evaluate test items
       long countMatches = 0;
       int[][] confusionMatrix = new int[totalClasses][totalClasses];
-      LOG.info("Evaluate test tweets...");
+      LOG.info("Evaluate test items...");
 
       long startTime = System.currentTimeMillis();
       for (Item testItem : testItems) {
-
         Map<Integer, Double> featureVector = testItem.getFeatureVector();
 
-        double predictedClass = evaluate(featureVector, svmModel, totalClasses);
+        Pair<Double, Map<Integer, Double>> result = evaluate(featureVector,
+            svmModel, totalClasses);
+
+        int predictedClass = result.getKey().intValue();
+
+        testItem.setPredictedClass(predictedClass);
+        testItem.setPredictedClassProbabilities(result.getValue());
 
         if (testItem.getActualClass() != null) {
           int actualClass = testItem.getActualClass();
@@ -534,9 +543,12 @@ public class SVM {
         }
       }
 
+      // update test items in dataset
+      dataset.setTestItems(testItems);
+
       LOG.info("Evaluate finished after "
           + (System.currentTimeMillis() - startTime) + " ms");
-      LOG.info("Total test tweets: " + testItems.size());
+      LOG.info("Total test items: " + testItems.size());
       if (countMatches > 0) {
         LOG.info("Matches: " + countMatches);
         double accuracy = (double) countMatches / (double) testItems.size();
@@ -551,7 +563,7 @@ public class SVM {
   public static void main(String[] args) {
     boolean parameterSearch = false;
     boolean useSerialization = true;
-    int nFoldCrossValidation = 0;
+    int nFoldCrossValidation = 1;
 
     // Get first dataset
     Dataset dataset = Configuration.getDataSets().get(0);
