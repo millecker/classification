@@ -32,8 +32,8 @@ global.resources.datasets:
       featureVectorStart.index: 1
       featureVectorEnd.index: 93
       svm.kernel: 2 # RBF # 0 Linear
-      svm.c: 512.0 # 0.5
-      svm.gamma: 0.000488281 # null
+      svm.c: 0.5
+      svm.gamma: null
       svm.class.weights: # http://www.csie.ntu.edu.tw/~cjlin/libsvm/faq.html#f804
         0: 8.3577
         1: 1.0
