@@ -24,8 +24,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -136,6 +139,9 @@ public class FileUtils {
   }
 
   public static void writeItems(String file, Dataset dataset) {
+    DecimalFormat df = new DecimalFormat("0",
+        DecimalFormatSymbols.getInstance(Locale.ENGLISH));
+    df.setMaximumFractionDigits(8);
     List<Item> items = dataset.getTestItems();
     String sep = dataset.getDelimiter();
     OutputStream os = null;
@@ -148,7 +154,7 @@ public class FileUtils {
 
       int i = 0;
       for (Item item : items) {
-        // print header
+        // write header
         if (i == 0) {
           StringBuilder sbHeader = new StringBuilder("id");
           for (Map.Entry<Integer, Double> prob : item
@@ -160,12 +166,12 @@ public class FileUtils {
           bw.write(sbHeader.toString());
           bw.newLine();
         }
-        // print item
+        // write item
         StringBuilder sb = new StringBuilder();
         sb.append(item.getId());
         for (Map.Entry<Integer, Double> prob : item
             .getPredictedClassProbabilities().entrySet()) {
-          sb.append(sep + prob.getValue());
+          sb.append(sep + df.format(prob.getValue()));
         }
         bw.write(sb.toString());
         bw.newLine();
