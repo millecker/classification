@@ -45,6 +45,7 @@ import at.illecker.classification.commons.Configuration;
 import at.illecker.classification.commons.Dataset;
 import at.illecker.classification.commons.Item;
 import at.illecker.classification.commons.Pair;
+import at.illecker.classification.io.FileUtils;
 import at.illecker.classification.io.SerializationUtils;
 
 public class SVM {
@@ -570,6 +571,9 @@ public class SVM {
     dataset.printDatasetStats();
 
     SVM.svm(dataset, 9, nFoldCrossValidation, parameterSearch, useSerialization);
+
+    FileUtils.writeItems(dataset.getDatasetPath() + File.separator
+        + "submission.csv", dataset);
   }
 
 }

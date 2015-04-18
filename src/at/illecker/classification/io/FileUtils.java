@@ -17,9 +17,13 @@
 package at.illecker.classification.io;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -129,6 +133,63 @@ public class FileUtils {
     }
     LOG.info("Loaded total " + items.size() + " items");
     return items;
+  }
+
+  public static void writeItems(String file, Dataset dataset) {
+    List<Item> items = dataset.getTestItems();
+    String sep = dataset.getDelimiter();
+    OutputStream os = null;
+    OutputStreamWriter osw = null;
+    BufferedWriter bw = null;
+    try {
+      os = new FileOutputStream(file);
+      osw = new OutputStreamWriter(os, "UTF-8");
+      bw = new BufferedWriter(osw);
+
+      int i = 0;
+      for (Item item : items) {
+        // print header
+        if (i == 0) {
+          StringBuilder sbHeader = new StringBuilder("id");
+          for (Map.Entry<Integer, Double> prob : item
+              .getPredictedClassProbabilities().entrySet()) {
+            sbHeader
+                .append(sep + dataset.getActualClassRegex() + prob.getKey());
+          }
+          bw.write(sbHeader.toString());
+        }
+        // print item
+        StringBuilder sb = new StringBuilder();
+        sb.append(item.getId());
+        for (Map.Entry<Integer, Double> prob : item
+            .getPredictedClassProbabilities().entrySet()) {
+          sb.append(sep + prob.getValue());
+        }
+        bw.write(sb.toString());
+      }
+
+    } catch (IOException e) {
+      LOG.error("IOException: " + e.getMessage());
+    } finally {
+      if (bw != null) {
+        try {
+          bw.close();
+        } catch (IOException ignore) {
+        }
+      }
+      if (osw != null) {
+        try {
+          osw.close();
+        } catch (IOException ignore) {
+        }
+      }
+      if (os != null) {
+        try {
+          os.close();
+        } catch (IOException ignore) {
+        }
+      }
+    }
   }
 
 }
